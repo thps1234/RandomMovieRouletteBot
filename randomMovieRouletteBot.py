@@ -10,4 +10,10 @@ def start(message):
     markup.add(btn)
     bot.send_message(message.from_user.id, "Test", reply_markup=markup)
 
+@bot.message_handler(content_types=['text'])
+def get_text_messages(message):
+    if message.text == '/start':
+        bot.send_message(message.from_user.id, 'Test')
+
+
 bot.polling(none_stop=True, interval=0)
