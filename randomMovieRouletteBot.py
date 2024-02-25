@@ -1,9 +1,13 @@
-from aiogram import Bot, Dispatcher, executor, types
-
-API_TOKEN = '6470319699:AAFZAv2AulBCohVSY4HVkKschZcJwudnjPs'
-bot = Bot(token = API_TOKEN)
-dp = Dispatcher(bot)
-
-@dp.message_handler(commands=['start']) #Явно указываем в декораторе, на какую команду реагируем.
-async def send_welcome(message: types.Message):
-    await message.reply("Привет!\nЯ Эхо-бот от Skillbox!\nОтправь мне любое сообщение, а я тебе обязательно отвечу.")
+import telebot
+# Создаем экземпляр бота
+bot = telebot.TeleBot('6470319699:AAFZAv2AulBCohVSY4HVkKschZcJwudnjPs')
+# Функция, обрабатывающая команду /start
+@bot.message_handler(commands=["start"])
+def start(m, res=False):
+    bot.send_message(m.chat.id, 'Я на связи. Напиши мне что-нибудь )')
+# Получение сообщений от юзера
+@bot.message_handler(content_types=["text"])
+def handle_text(message):
+    bot.send_message(message.chat.id, 'Вы написали: ' + message.text)
+# Запускаем бота
+bot.polling(none_stop=True, interval=0)
