@@ -1,18 +1,9 @@
-import telebot
-from telebot import types
+from aiogram import Bot, Dispatcher, executor, types
 
-bot = telebot.TeleBot('6470319699:AAFZAv2AulBCohVSY4HVkKschZcJwudnjPs')
+API_TOKEN = '6470319699:AAFZAv2AulBCohVSY4HVkKschZcJwudnjPs'
+bot = Bot(token = API_TOKEN)
+dp = Dispatcher(bot)
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn = types.KeyboardButton("Roll")
-    markup.add(btn)
-    bot.send_message(message.from_user.id, "Test", reply_markup=markup)
-
-@bot.message_handler(content_types=['text'])
-def get_text_messages(message):
-    bot.send_message(message.from_user.id, 'Test')
-
-
-bot.polling(none_stop=True, interval=0)
+@dp.message_handler(commands=['start']) #Явно указываем в декораторе, на какую команду реагируем.
+async def send_welcome(message: types.Message):
+    await message.reply("Привет!\nЯ Эхо-бот от Skillbox!\nОтправь мне любое сообщение, а я тебе обязательно отвечу.")
