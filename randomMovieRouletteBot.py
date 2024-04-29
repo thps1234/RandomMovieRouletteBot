@@ -1,12 +1,16 @@
 import telebot
 from telebot import types
 
+import re
+
 import json
 
 import requests
 from bs4 import BeautifulSoup
 import random
 
+
+#initialization: bot, headers and keyboard
 bot = telebot.TeleBot(open("token.txt", "r").read())
 
 headers = json.loads(open("headers.json", "r").read())
@@ -18,24 +22,14 @@ for i in lt_lists.keys():
     key = types.InlineKeyboardButton(text=i, callback_data=i)
     keyboard.add(key)
 
-
-def get_urls_from_list(i_url):
-    lt_urls = []
-    lv_url = i_url
-    lv_page = 1
-    page = requests.get(lv_url, headers=headers)
-    while 1 == 1:
-        lv_prev = len(lt_urls)
-        lv_page += 1
-        soup = BeautifulSoup(page.content, "html.parser")
-        for element in soup.find_all('div', class_="really-lazy-load"):
-            lt_urls.append(element.attrs['data-target-link'])
-        if lv_prev == len(lt_urls):
-            return lt_urls
-        lv_url = i_url + '/page/' + str(lv_page)
-        page = requests.get(lv_url, headers=headers)
+#regexes for a valid list URL
+lc_url_re1 = ("^" + re.escape("letterboxd.com/")
+              + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
+lc_url_re2 = ("^" + re.escape("https://letterboxd.com/")
+              + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
 
 
+#returns a dictionary of movie attributes by its URL
 def get_movie_attrs(i_url):
     lt_attr = dict()
     page = requests.get(i_url, headers=headers)
@@ -53,6 +47,7 @@ def get_movie_attrs(i_url):
     return lt_attr
 
 
+#picks a random movie from a list
 def get_random_url_from_list(i_url):
     page = requests.get(i_url, headers=headers)
     soup = BeautifulSoup(page.content, "html.parser")
@@ -68,6 +63,7 @@ def get_random_url_from_list(i_url):
         soup.find_all("div", class_="really-lazy-load")[lv_num_on_page].attrs["data-target-link"]
 
 
+#formatting the message
 def get_message(i_movie_url):
     lv_message = "<b><a href=\"" + i_movie_url + "\">" + get_movie_attrs(i_movie_url)["Name"] + "</a></b>" + "\n" + \
                  "Directed by " + get_movie_attrs(i_movie_url)["Directed by"] + "\n" \
@@ -75,13 +71,24 @@ def get_message(i_movie_url):
     return lv_message
 
 
+#message handling: drawing keyboard at start
+#or picking a random movie from a given list
 @bot.message_handler(content_types=["text"])
 def get_text_messages(message):
     if message.text == "/start":
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
+    elif re.match(lc_url_re1, message.text) or re.match(lc_url_re2, message.text):
+        bot.send_message(message.from_user.id,
+                         get_message(get_random_url_from_list(message.text)), parse_mode="HTML")
+        bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
+                         reply_markup=keyboard, parse_mode="HTML")
+    else:
+        bot.send_message(message.from_user.id, "Please check your URL and try again")
 
 
+#button handling: picking a movie from a chosen list
+#and drawing a keyboard again for a reroll
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
     bot.send_message(call.message.chat.id,
