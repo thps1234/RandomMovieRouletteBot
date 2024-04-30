@@ -59,15 +59,20 @@ def get_random_url_from_list(i_url):
     lv_url = i_url + "/page/" + str(lv_page)
     page = requests.get(lv_url, headers=headers)
     soup = BeautifulSoup(page.content, "html.parser")
-    return "https://letterboxd.com/" + \
+    return "https://letterboxd.com" + \
         soup.find_all("div", class_="really-lazy-load")[lv_num_on_page].attrs["data-target-link"]
 
 
 #formatting the message
 def get_message(i_movie_url):
-    lv_message = "<b><a href=\"" + i_movie_url + "\">" + get_movie_attrs(i_movie_url)["Name"] + "</a></b>" + "\n" + \
-                 "Directed by " + get_movie_attrs(i_movie_url)["Directed by"] + "\n" \
-                 "Year: " + get_movie_attrs(i_movie_url)['Year']
+    lt_attrs = get_movie_attrs(i_movie_url)
+    if "Original Name" in lt_attrs:
+        lv_name = lt_attrs["Original Name"] + "/" + lt_attrs["Name"]
+    else:
+        lv_name = lt_attrs["Name"]
+    lv_message = "<b><a href=\"" + i_movie_url + "\">" + lv_name + "</a></b>" + "\n" + \
+                 "Directed by " + lt_attrs["Directed by"] + "\n" \
+                 "Year: " + lt_attrs['Year']
     return lv_message
 
 
