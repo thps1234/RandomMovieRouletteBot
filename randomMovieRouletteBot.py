@@ -22,10 +22,11 @@ for i in lt_lists.keys():
     keyboard.add(key)
 
 #regexes for a valid list URL
-lc_url_re1 = ("^" + re.escape("letterboxd.com/")
-              + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
-lc_url_re2 = ("^" + re.escape("https://letterboxd.com/")
-              + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
+lc_url_re_long = ("^" + re.escape("letterboxd.com/")
+                  + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
+lc_url_re_long_https = ("^" + re.escape("https://letterboxd.com/")
+                        + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
+lc_url_re_short = re.escape("https://boxd.it/") + "[0-9a-zA-Z]{5}"
 
 
 #returns a dictionary of movie attributes by its URL
@@ -82,9 +83,19 @@ def get_text_messages(message):
     if message.text == "/start":
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
-    elif re.match(lc_url_re1, message.text) or re.match(lc_url_re2, message.text):
+    elif re.match(lc_url_re_long, message.text) or re.match(lc_url_re_long_https, message.text):
         bot.send_dice(message.from_user.id)
         lt_message = get_message(get_random_url_from_list(message.text))
+        bot.send_photo(message.from_user.id, lt_message[0], lt_message[1], parse_mode="HTML")
+        bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
+                         reply_markup=keyboard, parse_mode="HTML")
+    elif re.search(lc_url_re_short, message.text) is not None:
+        bot.send_dice(message.from_user.id)
+        lv_url = message.text[
+                    re.search(lc_url_re_short, message.text).regs[0][0]:
+                    re.search(lc_url_re_short, message.text).regs[0][1]
+                 ]
+        lt_message = get_message(get_random_url_from_list(lv_url))
         bot.send_photo(message.from_user.id, lt_message[0], lt_message[1], parse_mode="HTML")
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
