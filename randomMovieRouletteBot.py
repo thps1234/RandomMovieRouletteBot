@@ -9,7 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 import random
 
-
 #initialization: bot, headers and keyboard
 bot = telebot.TeleBot(open("token.txt", "r").read())
 
@@ -34,16 +33,14 @@ def get_movie_attrs(i_url):
     lt_attr = dict()
     page = requests.get(i_url, headers=headers)
     soup = BeautifulSoup(page.content, "html.parser")
-    element = soup.find("section", class_="film-header-lockup")
-    if len(element.contents[3].contents) == 5:
-        lt_attr["Name"] = element.contents[1].text
-        lt_attr["Directed by"] = element.contents[3].contents[3].text
-        lt_attr["Year"] = element.contents[3].contents[1].text
-    else:
-        lt_attr["Name"] = element.contents[1].text
-        lt_attr["Original Name"] = element.contents[3].contents[3].text
-        lt_attr["Directed by"] = element.contents[3].contents[5].text
-        lt_attr["Year"] = element.contents[3].contents[1].text
+    lt_attr["Description"] = soup.find("meta", property="og:description").attrs["content"]
+    lt_attr["Title"] = soup.find("meta", property="og:title").attrs["content"]
+    lt_attr["Directed by"] = soup.find("meta", content="Directed by").next.attrs["content"]
+    lt_attr["Average rating"] = soup.find("meta", content="Average rating").next.attrs["content"].split(' ')[0]
+    lt_attr["Image"] = soup.find("meta", property="og:image").attrs["content"]
+    lv_origtitle = soup.find("h2", class_="originalname")
+    if lv_origtitle is not None:
+        lt_attr["Original Title"] = soup.find("h2", class_="originalname").contents[0]
     return lt_attr
 
 
@@ -66,14 +63,16 @@ def get_random_url_from_list(i_url):
 #formatting the message
 def get_message(i_movie_url):
     lt_attrs = get_movie_attrs(i_movie_url)
-    if "Original Name" in lt_attrs:
-        lv_name = lt_attrs["Original Name"] + "/" + lt_attrs["Name"]
+    lt_message = [lt_attrs["Image"]]
+    if "Original Title" in lt_attrs:
+        lv_name = lt_attrs["Original Title"] + "/" + lt_attrs["Title"]
     else:
-        lv_name = lt_attrs["Name"]
-    lv_message = "<b><a href=\"" + i_movie_url + "\">" + lv_name + "</a></b>" + "\n" + \
-                 "Directed by " + lt_attrs["Directed by"] + "\n" \
-                 "Year: " + lt_attrs['Year']
-    return lv_message
+        lv_name = lt_attrs["Title"]
+    lt_message.append("<b><a href=\"" + i_movie_url + "\">" + lv_name + "</a></b>" + "\n" + \
+                      "Directed by " + lt_attrs["Directed by"] + "\n" + \
+                      "Rating: " + lt_attrs["Average rating"] + "\n\n" + \
+                      lt_attrs["Description"])
+    return lt_message
 
 
 #message handling: drawing keyboard at start
@@ -84,8 +83,9 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
     elif re.match(lc_url_re1, message.text) or re.match(lc_url_re2, message.text):
-        bot.send_message(message.from_user.id,
-                         get_message(get_random_url_from_list(message.text)), parse_mode="HTML")
+        bot.send_dice(message.from_user.id)
+        lt_message = get_message(get_random_url_from_list(message.text))
+        bot.send_photo(message.from_user.id, lt_message[0], lt_message[1], parse_mode="HTML")
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
     else:
@@ -96,8 +96,9 @@ def get_text_messages(message):
 #and drawing a keyboard again for a reroll
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
-    bot.send_message(call.message.chat.id,
-                     get_message(get_random_url_from_list(lt_lists[call.data])), parse_mode="HTML")
+    bot.send_dice(call.message.chat.id)
+    lt_message = get_message(get_random_url_from_list(lt_lists[call.data]))
+    bot.send_photo(call.message.chat.id, lt_message[0], lt_message[1], parse_mode="HTML")
     bot.send_message(call.message.chat.id, text="<b>Choose from list or send URL:</b>",
                      reply_markup=keyboard, parse_mode="HTML")
 
