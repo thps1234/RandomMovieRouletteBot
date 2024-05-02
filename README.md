@@ -21,4 +21,5 @@ Letterboxd doesn't have API, so we have to analyse content on a web page.
 - **randomMovieRouletteBot.py** - implementation
 - **headers.json** - headers for requests
 - **lists.json** - pre-defined lists
+- **requirements.txt** and **Dockerfile** - Docker configs
 - **token.txt** - telegram bot token. For obvious security reasons this file is not presented here. 
