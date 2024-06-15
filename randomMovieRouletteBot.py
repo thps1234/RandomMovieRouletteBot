@@ -34,6 +34,9 @@ def get_movie_attrs(i_url):
     lt_attr = dict()
     page = requests.get(i_url, headers=headers)
     soup = BeautifulSoup(page.content, "html.parser")
+    lv_duration = re.search('runTime: [0-9]{1,4}', str(soup))
+    lv_duration = str(soup)[lv_duration.regs[0][0]:lv_duration.regs[0][1]].split(' ')[1]
+    lt_attr["Duration"] = divmod(int(lv_duration), 60)
     lt_attr["Description"] = soup.find("meta", property="og:description").attrs["content"]
     lt_attr["Title"] = soup.find("meta", property="og:title").attrs["content"]
     lt_attr["Directed by"] = soup.find("meta", content="Directed by").next.attrs["content"]
@@ -71,8 +74,9 @@ def get_message(i_movie_url):
     else:
         lv_name = lt_attrs["Title"]
     lt_message.append("<b><a href=\"" + i_movie_url + "\">" + lv_name + "</a></b>" + "\n" + \
-                      "Directed by " + lt_attrs["Directed by"] + "\n" + \
-                      "Rating: " + lt_attrs["Average rating"] + "\n\n" + \
+                      "<b>Directed by</b> " + lt_attrs["Directed by"] + "\n" + \
+                      "<b>Duration:</b> " + str(lt_attrs["Duration"][0]) + " h. " + str(lt_attrs["Duration"][1]) + " min. \n" + \
+                      "<b>Rating:</b> " + lt_attrs["Average rating"] + "\n\n" + \
                       lt_attrs["Description"])
     return lt_message
 
