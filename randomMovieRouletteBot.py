@@ -14,19 +14,22 @@ bot = telebot.TeleBot(open("token.txt", "r").read())
 
 headers = json.loads(open("headers.json", "r").read())
 
-lt_lists = json.loads(open("lists.json", "r").read())
+gt_lists = json.loads(open("lists.json", "r").read())
 
 keyboard = types.InlineKeyboardMarkup()
-for i in lt_lists.keys():
+for i in gt_lists.keys():
     key = types.InlineKeyboardButton(text=i, callback_data=i)
     keyboard.add(key)
 
 #regexes for a valid list URL
-lc_url_re_long = ("^" + re.escape("letterboxd.com/")
+gc_url_re_long = ("^" + re.escape("letterboxd.com/")
                   + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
-lc_url_re_long_https = ("^" + re.escape("https://letterboxd.com/")
+gc_url_re_long_https = ("^" + re.escape("https://letterboxd.com/")
                         + "[0-9a-z_-]{1,100}" + re.escape("/list/") + "[0-9a-z_-]{1,100}" + re.escape("/"))
-lc_url_re_short = re.escape("https://boxd.it/") + "[0-9a-zA-Z]{5}"
+gc_url_re_short = re.escape("https://boxd.it/") + "[0-9a-zA-Z]{5}"
+gc_https = 'https://'
+gc_star = '★'
+gc_halfastar = '½'
 
 
 #returns a dictionary of movie attributes by its URL
@@ -40,7 +43,12 @@ def get_movie_attrs(i_url):
     lt_attr["Title"] = soup.find("meta", property="og:title").attrs["content"]
     lt_attr["Directed by"] = soup.find("meta", content="Directed by").next.attrs["content"]
     lt_attr["Average rating"] = soup.find("meta", content="Average rating").next.attrs["content"].split(' ')[0]
-    lt_attr["Image"] = soup.find("meta", property="og:image").attrs["content"]
+    lv_rating = round(float(lt_attr["Average rating"]) * 2, 0)
+    lt_attr["Rating, stars"] = int(lv_rating / 2) * gc_star
+    if lv_rating % 2 == 1:
+        lt_attr["Rating, stars"] += gc_halfastar
+    lt_attr["Image"] = gc_https + \
+                       soup.find("script", type="application/ld+json").text.split(":")[2][2:].split('"')[0]
     lv_origtitle = soup.find("h2", class_="originalname")
     if lv_origtitle is not None:
         lt_attr["Original Title"] = soup.find("h2", class_="originalname").contents[0]
@@ -75,7 +83,7 @@ def get_message(i_movie_url):
     lt_message.append("<b><a href=\"" + i_movie_url + "\">" + lv_name + "</a></b>" + "\n" + \
                       "<b>Directed by</b> " + lt_attrs["Directed by"] + "\n" + \
                       "<b>Duration:</b> " + str(lt_attrs["Duration"][0]) + " h. " + str(lt_attrs["Duration"][1]) + " min. \n" + \
-                      "<b>Rating:</b> " + lt_attrs["Average rating"] + "\n\n" + \
+                      "<b>Rating:</b> " + lt_attrs["Rating, stars"] + " (" + lt_attrs["Average rating"] + ")\n\n" + \
                       lt_attrs["Description"])
     return lt_message
 
@@ -87,17 +95,17 @@ def get_text_messages(message):
     if message.text == "/start":
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
-    elif re.match(lc_url_re_long, message.text) or re.match(lc_url_re_long_https, message.text):
+    elif re.match(gc_url_re_long, message.text) or re.match(gc_url_re_long_https, message.text):
         bot.send_dice(message.from_user.id)
         lt_message = get_message(get_random_url_from_list(message.text))
         bot.send_photo(message.from_user.id, lt_message[0], lt_message[1], parse_mode="HTML")
         bot.send_message(message.from_user.id, text="<b>Choose from list or send URL:</b>",
                          reply_markup=keyboard, parse_mode="HTML")
-    elif re.search(lc_url_re_short, message.text) is not None:
+    elif re.search(gc_url_re_short, message.text) is not None:
         bot.send_dice(message.from_user.id)
         lv_url = message.text[
-                    re.search(lc_url_re_short, message.text).regs[0][0]:
-                    re.search(lc_url_re_short, message.text).regs[0][1]
+                 re.search(gc_url_re_short, message.text).regs[0][0]:
+                    re.search(gc_url_re_short, message.text).regs[0][1]
                  ]
         lt_message = get_message(get_random_url_from_list(lv_url))
         bot.send_photo(message.from_user.id, lt_message[0], lt_message[1], parse_mode="HTML")
@@ -112,7 +120,7 @@ def get_text_messages(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
     bot.send_dice(call.message.chat.id)
-    lt_message = get_message(get_random_url_from_list(lt_lists[call.data]))
+    lt_message = get_message(get_random_url_from_list(gt_lists[call.data]))
     bot.send_photo(call.message.chat.id, lt_message[0], lt_message[1], parse_mode="HTML")
     bot.send_message(call.message.chat.id, text="<b>Choose from list or send URL:</b>",
                      reply_markup=keyboard, parse_mode="HTML")
